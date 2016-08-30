@@ -114,6 +114,11 @@ print(ValidationResults)
 ```
 
 
+The accuracy for the three models are given below :- 
+
+1. CART : 0.4963 (out of sample error ~ 0.5037)
+2. Gradient boosting technique : 0.985 (out of sample error ~ 0.015)
+3. Random forests : 0.9966 ( out of sample error ~ 0.0034)
 
 
 
