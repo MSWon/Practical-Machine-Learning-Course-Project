@@ -1,0 +1,140 @@
+---
+title: "Practical Machine Learning Course Project"
+output: html_document
+---
+
+
+## Krishnamoorthy R
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. 
+
+This project uses the data collected by these devices and tries to predict in the manner in which the person has done the exercise, which is given by the classe variable in the dataset.
+
+Training data: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+Testing data : https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+First we load the required packages and downlaod the data from the links given above and load it into R.
+
+```{r}
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(RColorBrewer)
+library(rattle)
+library(randomForest)
+library(knitr)
+
+
+setwd("G:/Coursera/Data Science/8-Practical Machine Learning")
+train <- read.csv("pml-training.csv")
+test <- read.csv("pml-testing.csv")
+```
+
+Then we take the training data and divide it into 2 parts, subtrain and subtest, and use the pml-testing.csv dataset for validation.
+
+We also remove all the variables that have little or no variance from the dataset as it can hamper our prediction.
+
+```{r}
+inTrain <- createDataPartition(train$classe,p = 0.6, list = FALSE)
+subtrain <- train[inTrain,]
+subtest <- train[-inTrain,]
+
+nearzero <- nearZeroVar(subtrain , saveMetrics = TRUE)
+subtrain <- subtrain[,nearzero$nzv == FALSE]
+
+nearzero <- nearZeroVar(subtest, saveMetrics = TRUE )
+subtest <- subtest[, nearzero$nzv == FALSE]
+
+nearzero <- nearZeroVar(test, saveMetrics = TRUE )
+test <- test[, nearzero$nzv == FALSE]
+
+# Removing columns that have more than 70% Na values
+subtrain <- subtrain[, colMeans(is.na(subtrain)) <= 0.3]
+
+#Removing the first 5 columns as it is not required
+subtrain <- subtrain[,-(1:5)]
+subtest <- subtest[,-(1:5)]
+test <- test[,-(1:5)]
+```
+##Training
+
+The first algorithm that I used was the CART model using the train function.
+
+```{r}
+fitControl <- trainControl(method='cv', number = 3)
+tmodel <- train(subtrain$classe ~., data = subtrain, method = "rpart", trControl = fitControl)
+fancyRpartPlot(tmodel$finalModel)
+
+
+```
+
+The second algorithm I used was the gradient boosting technique.
+
+```{r, echo = FALSE}
+gmodel <- train(subtrain$classe ~., data = subtrain, method = "gbm", trControl = fitControl)
+```
+
+The third algorithm I used was random forests.
+
+```{r}
+rfmodel <- train(subtrain$classe ~. , data = subtrain, method = "rf", trControl = fitControl, ntree = 100)
+rfmodel$results
+```
+
+## Testing
+To find out which of the three has the best accuracy, all three of the models were tested on the subtest dataset.
+
+```{r}
+
+#CART testing
+predT <- predict(tmodel , newdata = subtest)
+confusionMatrix(predT , subtest$classe)
+
+#Gradient boosting
+predR <- predict(rfmodel , newdata = subtest)
+confusionMatrix(predR , subtest$classe)
+
+#Random Forests
+predG <- predict(gmodel , newdata = subtest)
+confusionMatrix(predG, subtest$classe)
+```
+
+
+
+##Validation
+
+As we can see, the random forest algorithm has the best accuracy, and hence we will use this model to validate the pml-testing.csv dataset.
+
+```{r}
+predVad <- predict(rfmodel, newdata = test)
+ValidationResults <- data.frame(predVad)
+colnames(ValidationResults) <- "Prediction"
+print(ValidationResults)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
